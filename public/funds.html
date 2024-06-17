@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
+    <!-- <meta http-equiv="Content-Security-Policy" content="default-src 'self' ; script-src 'self' ; style-src 'self' "> -->
+
+    <!-- React.js / Babel CDN docs -->
+    <script src="./src/reactDev.js" crossorigin></script>
+    <script src="./src/reactDocDev.js" crossorigin></script>
+    <script src='./src/babel.js'></script>
+    <!-- sweet alert() -->
+    <script src="./src/sweetAlert.js"></script>
+    <!-- <script src="https://unpkg.com/react@17/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js" crossorigin></script> -->
+
+
+    <link rel="stylesheet" href="./src/bulmaMin.css">
+    <link href="./styles.css" rel="stylesheet">
+    <title>Funds</title>
+
+</head>
+
+<body>
+    <div id="FundsPage"></div>
+
+    <script src="./components/Navbar.js" type="text/babel"></script>
+    <script type="text/babel">
+
+        const FundsPage = () => {
+            const [userFundBalance, setUserFundBalance] = React.useState(0) // user fund balance
+            const [fundTransactions, setFundTransactions] = React.useState([]); // user fund dep and withdraw transactions
+            const [transactionTableElements, setTransactionTableElements] = React.useState([]); // user fund dep and withdraw transactions
+
+            React.useEffect(() => {
+                window.backend.fundTransactionHistory(sessionStorage.getItem('uuid')).then((res) => {
+                    // save the transactions
+                    setFundTransactions(res)
+                    //calculate the fund balance of the user
+                    var fundBalance = 0
+                    res.forEach((item) => {
+                        if (item.type == 'Deposit') fundBalance = fundBalance + item.amount;
+                        else if (item.type == 'Withdraw') fundBalance = fundBalance - item.amount;
+                    })
+                    setUserFundBalance(fundBalance);
+                    // render the transactions history in table
+                    res.reverse();
+                    setTransactionTableElements(res.map((item) => {
+                        return (
+                            <tr key={item.tuid}>
+                                <th>{res.indexOf(item) + 1}</th>
+                                <th>{item.date}</th>
+                                <th>{(item.amount).toFixed(2)}</th>
+                                <th className={item.type == 'Withdraw' ? "has-text-danger" : "has-text-success"}>{item.type}</th>
+                            </tr>
+                        )
+                    }))
+
+                });
+            }, []);
+
+            function handleFundTransaction(type) {
+                swal(`Enter Amount to ${type}.`, {
+                    content: "input",
+                })
+                    .then((amount) => {
+                        if (amount === null) { // payment popup closed
+                            swal("Transaction Cancelled.");
+                        } else if (Number(amount) <= 0) {
+                            swal("Amount should be greater than zero.");
+                        } else if (type == 'Withdraw') { // withdrawal request
+                            if ((Number(amount) >= userFundBalance)) { // withdrawing more money than balance
+                                swal("Insufficient Balance.");
+                                return;
+
+                            }// successful withdrawal 
+                            window.backend.fundTransaction(sessionStorage.getItem('uuid'), 'Withdraw', Number(amount)).then((res) => {
+                                swal("Transaction SuccessFul.");
+                                window.location.reload();
+                            })
+                        } else { // depositing money to account 
+                            window.backend.fundTransaction(sessionStorage.getItem('uuid'), "Deposit", Number(amount)).then((res) => {
+                                swal("Transaction SuccessFul.");
+                                window.location.reload();
+                            })
+                        }
+                    });
+            }
+
+            return (
+                <div className="container">
+                    <div className="fundsSummaryCard has-text-centered">
+                        <p className="is-size-2 mt-1 ml-3">Funds Balance </p>
+                        <p className="is-size-3 mt-1 ml-5 has-text-weight-bold">₹ {userFundBalance.toFixed(2)} </p>
+                        <div className="tradeTab is-flex is-justify-content-center mt-4">
+                            <button className="button is-success is-normal" onClick={() => handleFundTransaction('Deposit')}>Deposit</button>
+                            <button className="button is-link is-normal" onClick={() => handleFundTransaction('Withdraw')} >Withdraw</button>
+                        </div>
+                    </div>
+                    <div className="fundTransactionsTable">
+                        <table className="table is-bordered is-striped  is-hoverable is-fullwidth">
+                            <thead>
+                                <tr>
+                                    <th style={{ width: "10%" }}>SL</th>
+                                    <th style={{ width: "20%" }}>Date</th>
+                                    <th style={{ width: "30%" }}>Amount</th>
+                                    <th style={{ width: "20%" }}>Type</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                {transactionTableElements}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>)
+        }
+
+
+
+        ReactDOM.render(
+            <React.StrictMode>
+                <Navbar page={"Funds"} />
+                <FundsPage />
+            </React.StrictMode>
+            , document.getElementById('FundsPage'));
+    </script>
+
+
+
+</body>
+
+</html>

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
+    <!-- <meta http-equiv="Content-Security-Policy" content="default-src 'self' ; script-src 'self' ; style-src 'self' "> -->
+
+    <!-- React.js / Babel CDN docs -->
+    <script src="./src/reactDev.js" crossorigin></script>
+    <script src="./src/reactDocDev.js" crossorigin></script>
+    <script src='./src/babel.js'></script>
+    <!-- <script src="https://unpkg.com/react@17/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js" crossorigin></script> -->
+
+
+    <link rel="stylesheet" href="./src/bulmaMin.css">
+    <link href="./styles.css" rel="stylesheet">
+    <title>Home</title>
+
+</head>
+
+<body>
+    <div id="HomePage"></div>
+
+    <script src="./components/Navbar.js" type="text/babel"></script>
+    <script type="text/babel">
+
+        const HomeView = () => {
+            const [marketSelected, setMarketSelected] = React.useState("us");
+            const [usCompElements, setUsCompElements] = React.useState();
+            const [inCompElements, setInCompElements] = React.useState();
+
+            React.useEffect(() => {
+                window.backend.getCompanyIndexes().then((res) => {
+                    setUsCompElements(
+                        res.map((item) => {
+                            if (item.market == "us") {
+                                return (
+                                    <tr key={item.cuid}>
+                                        <td>{item.sl_no}</td>
+                                        <td>{item.symbol}</td>
+                                        <td>{item.name}</td>
+                                        <td className="has-text-weight-bold">₹ {item.price_today}</td>
+                                        <td className={item.change_percentage < 0 ? "has-text-danger" : "has-text-success"}>{item.change_percentage} %</td>
+                                    </tr>
+                                )
+                            }
+
+                        })
+                    )
+                    setInCompElements(
+                        res.map((item) => {
+                            if (item.market == "in") {
+                                return (
+                                    <tr>
+                                        <td>{item.sl_no - 400}</td>
+                                        <td>{item.symbol}</td>
+                                        <td>{item.name}</td>
+                                        <td className="has-text-weight-bold">₹ {item.price_today}</td>
+                                        <td className={item.change_percentage < 0 ? "has-text-danger" : "has-text-success"}>{item.change_percentage} %</td>
+                                    </tr>
+                                )
+                            }
+
+                        })
+                    )
+                })
+            }, []);
+
+            return (
+                <div className="container">
+                    <div className="tabs is-centered">
+                        <ul>
+                            <li className={marketSelected == "us" ? "is-active" : ""} ><a onClick={() => { setMarketSelected("us") }}>US Market</a></li>
+                            <li className={marketSelected == "in" ? "is-active" : ""} > <a onClick={() => { setMarketSelected("in") }}>Indian Market</a></li>
+                        </ul>
+                    </div>
+                    <div className="indexTable">
+                        <table className="table is-bordered is-striped  is-hoverable is-fullwidth">
+                            <thead>
+                                <tr>
+                                    <th style={{ width: "10%" }}>SL</th>
+                                    <th style={{ width: "15%" }}>Ticker</th>
+                                    <th style={{ width: "40%" }}>Name</th>
+                                    <th style={{ width: "15%" }}>Price</th>
+                                    <th style={{ width: "15%" }}>Chng %</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                {marketSelected == 'us' ? usCompElements : inCompElements}
+                            </tbody>
+                        </table>
+                    </div>
+                </div >
+            )
+        }
+
+
+
+        ReactDOM.render(
+            <React.StrictMode>
+                <Navbar page={"Home"} />
+                <HomeView />
+            </React.StrictMode>
+            , document.getElementById('HomePage'));
+    </script>
+
+
+
+</body>
+
+</html>

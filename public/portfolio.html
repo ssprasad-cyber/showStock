@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
+    <!-- <meta http-equiv="Content-Security-Policy" content="default-src 'self' ; script-src 'self' ; style-src 'self' "> -->
+
+    <!-- React.js / Babel CDN docs -->
+    <script src="./src/reactDev.js" crossorigin></script>
+    <script src="./src/reactDocDev.js" crossorigin></script>
+    <script src='./src/babel.js'></script>
+    <script src="./src/chart.js"></script>
+    <script src="./src/uniqolor.js"></script>
+    <!-- <script src="https://unpkg.com/react@17/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js" crossorigin></script> -->
+
+
+    <link rel="stylesheet" href="./src/bulmaMin.css">
+    <link href="./styles.css" rel="stylesheet">
+    <title>Portfolio</title>
+
+</head>
+
+<body>
+    <div id="PortfolioPage"></div>
+
+
+    <script src="./components/Navbar.js" type="text/babel"></script>
+    <script type="text/babel">
+
+        const ChartCanvas = (labels, data, count) => {
+            console.log('hel');
+            console.log(labels, data);
+            console.log(count);
+
+            new Chart("chartCanvas", {
+                type: "doughnut",
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Qty',
+                        data: data,
+                        backgroundColor: [
+                            "rgb(244, 67, 54)",
+                            "rgb(232, 30, 99)",
+                            "rgb(156, 39, 176)",
+                            "rgb(103, 58, 183)",
+                            "rgb(63, 81, 181)",
+                            "rgb(33, 150, 243)",
+                            "rgb(3, 169, 244)",
+                            "rgb(0, 188, 212)",
+                            "rgb(0, 150, 136)",
+                            "rgb(76, 175, 80)",
+                            "rgb(139, 195, 74)",
+                            "rgb(205, 220, 57)",
+                            "rgb(255, 235, 59)",
+                            "rgb(255, 193, 7)",
+                            "rgb(255, 152, 0)",
+                            "rgb(255, 87, 34)",
+                            "rgb(121, 85, 72)",
+                            "rgb(158, 158, 158)",
+                            "rgb(96, 125, 139)",
+                        ],
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        const PortfolioPage = () => {
+            const [userFundBalance, setUserFundBalance] = React.useState(0); // user fund balance
+            const [userStockValue, setUserStockValue] = React.useState(0); // user fund balance
+            const [userPortfolioStocks, setUserPortfolioStocks] = React.useState(null); // each object is the amount of stock holding of a user {symbol:'', holdings: INT}
+            const [userStockHoldingsElements, setUserStockHoldingsElements] = React.useState(null); // holds obj with--> price, symbol, numberofqty of a stock
+
+            // init functions
+            React.useEffect(() => {
+                // calculate the fund balance of the user
+                window.backend.fundTransactionHistory(sessionStorage.getItem('uuid')).then((res) => {
+                    //calculate the fund balance of the user
+                    var fundBalance = 0
+                    res.forEach((item) => {
+                        if (item.type == 'Deposit') fundBalance = fundBalance + item.amount;
+                        else if (item.type == 'Withdraw') fundBalance = fundBalance - item.amount;
+                    })
+                    setUserFundBalance(fundBalance.toFixed(2));
+                });
+
+                // get the consolidated stock balance of all the companies.
+                window.backend.allTransactions(sessionStorage.getItem('uuid')).then((res) => {
+                    //get unique companies
+                    let companySymbols = new Set()
+                    res.forEach((item) => companySymbols.add(item.symbol))
+
+                    // create template object with company symbol and their qty  {symbol:'', holdings: INT}
+                    let portfolioStockBalance = [];
+                    companySymbols.forEach((symbol) => portfolioStockBalance.push({ 'symbol': symbol, 'qty': 0 }))
+
+                    // calculate all the stock balance
+                    portfolioStockBalance.forEach(comp => {
+                        window.backend.transactionsOnComp(sessionStorage.getItem('uuid'), comp.symbol).then((res) => {
+                            var totalStocks = 0;
+                            res.forEach(item => {
+                                if (item.order_type == 'buy')
+                                    comp.qty = comp.qty + item.qty;
+                                else
+                                    comp.qty = comp.qty - item.qty;
+                            })
+                        })
+                    })
+                    setUserPortfolioStocks(portfolioStockBalance);
+                })
+
+            }, []);
+
+            // get current price of the stock
+            React.useEffect(() => {
+                if (userPortfolioStocks == null)
+                    return;
+                else {
+                    var newData = []
+                    var labels = []
+                    var data = []; // data for chart 
+                    userPortfolioStocks.forEach((item) => {
+                        window.backend.currentStockPrice(item.symbol).then(res => {
+                            var totalHoldingValue = Number((item.qty * res.price_today).toFixed(2));
+                            // newData.push({ ...item, "priceToday": res.price_today, "totalHoldingValue": totalHoldingValue });
+                            if (item.qty != 0) {
+                                labels.push(item.symbol);
+                                data.push(item.qty);
+                                newData.push(
+                                    <tr key={res.cuid}>
+                                        <td>{item.symbol}</td>
+                                        <td>{item.qty}</td>
+                                        <td>₹ {res.price_today}</td>
+                                        <td className="has-text-weight-bold">₹ {totalHoldingValue}</td>
+                                    </tr>)
+                            }
+
+                            setUserStockValue(prevData => (prevData = prevData + totalHoldingValue));
+                            setUserStockHoldingsElements(newData);
+                        })
+                    })
+                    ChartCanvas(labels, data, labels.length);
+                }
+            }, [userPortfolioStocks])
+
+
+            return (
+                <div className="container">
+                    <div className="portfolioLanding">
+                        <div className="portfolioSummaryCard has-text-centered">
+                            <p className="is-size-4  ">Consolidated  Portfolio </p>
+                            <p className="is-size-4  has-text-weight-bold">₹ {(Number(userStockValue) + Number(userFundBalance)).toFixed(2)}</p>
+                            <hr className="m-2 has-text-weight-bold" />
+                            <p className="is-size-5">Stock Value: <span className="has-text-weight-bold">₹ {userStockValue.toFixed(2)}</span> </p>
+                            <p className="is-size-5">Funds Value: <span className="has-text-weight-bold">₹ {userFundBalance}</span> </p>
+                        </div>
+                        <div className="chartSection">
+                            <canvas id="chartCanvas" style={{ width: '100%', height: '100%' }} />
+                        </div>
+                    </div>
+
+
+                    <div className="stocksListSection">
+                        <h3 className=" mt-2 ml-4 is-size-4 has-text-weight-bold">Portfolio Holdings</h3>
+                        <table className="table is-bordered is-striped  is-hoverable is-fullwidth">
+                            <thead>
+                                <tr>
+                                    <th style={{ width: "15%" }}>Ticker</th>
+                                    <th style={{ width: "15%" }}>Qty</th>
+                                    <th style={{ width: "20%" }}>Price</th>
+                                    <th style={{ width: "20%" }}>Holding Value</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                {userStockHoldingsElements}
+
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            )
+        }
+
+
+
+        ReactDOM.render(
+            <React.StrictMode>
+                <Navbar page={"Portfolio"} />
+                <PortfolioPage />
+            </React.StrictMode>
+            , document.getElementById('PortfolioPage'));
+    </script>
+
+
+
+</body>
+
+</html>
