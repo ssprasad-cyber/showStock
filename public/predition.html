@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Stock Prediction</title>
+
+    <!-- React.js / Babel CDN -->
+    <script src="https://unpkg.com/react@17/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js" crossorigin></script>
+
+    <!-- Bulma CSS -->
+    <link rel="stylesheet" href="./src/bulmaMin.css">
+    <link href="./styles.css" rel="stylesheet">
+</head>
+
+<body>
+    <div id="TradePage"></div>
+
+    <!-- Navbar Component -->
+    <script src="./components/Navbar.js" type="text/babel"></script>
+    <script type="text/babel">
+        const TradePage = () => {
+            const [companySelected, setCompanySelected] = React.useState({});
+            const [userCompStockBalance, setUserCompStockBalance] = React.useState({
+                "totalHolding": 0,
+                "totalHoldingValue": 0
+            });
+            const [userFundBalance, setUserFundBalance] = React.useState();
+            const [companyIndex, setCompanyIndex] = React.useState();
+            const [searchResults, setSearchResults] = React.useState([]);
+            const [orderQuantity, setOrderQuantity] = React.useState({ 'stockQty': 0, 'totalAmount': 0 });
+            const [feedback, setFeedback] = React.useState({ "status": 0, "message": "some text" })
+
+            React.useEffect(() => {
+                window.backend.getCompanyIndexes().then((res) => setCompanyIndex(res));
+
+                window.backend.fundTransactionHistory(sessionStorage.getItem("uuid")).then((res) => {
+                    var fundBalance = 0
+                    res.forEach((item) => {
+                        if (item.type == 'Deposit') fundBalance = fundBalance + item.amount;
+                        else if (item.type == 'Withdraw') fundBalance = fundBalance - item.amount;
+                    })
+                    setUserFundBalance(fundBalance);
+                });
+            }, []);
+
+            function selectingCompany(cuid) {
+                var foundCompany = {};
+                companyIndex.forEach(item => {
+                    if (item.cuid === cuid) foundCompany = item;
+                })
+
+                setCompanySelected(foundCompany);
+                window.backend.transactionsOnComp(sessionStorage.getItem("uuid"), foundCompany.symbol).then((res) => {
+                    var qty = 0
+                    res.forEach(item => {
+                        if (item.order_type == 'buy') qty = qty + item.qty;
+                        if (item.order_type == 'sell') qty = qty - item.qty;
+                    })
+                    setUserCompStockBalance({
+                        "totalHolding": qty,
+                        "totalHoldingValue": (qty * foundCompany.price_today)
+                    })
+                })
+            }
+
+            function searchCompanies(searchString) {
+                setSearchResults(companyIndex.map((item) => {
+                    if (item.name.toLowerCase().includes(searchString) || item.symbol == searchString.toUpperCase()) {
+                        return (<li key={item.cuid}><a className="has-text-link has-text-weight-semibold" onClick={() => selectingCompany(item.cuid)}>{item.name}</a></li>)
+                    }
+                    return null
+                }))
+            }
+
+            function orderExecute(type) {
+                if (orderQuantity.stockQty > 0) {
+                    var totalOrderAmount = Number(orderQuantity.stockQty * companySelected.price_today);
+                    if (type === "buy" && (userFundBalance > totalOrderAmount)) {
+                        window.backend.executeOrder(sessionStorage.getItem("uuid"), companySelected.symbol, orderQuantity.stockQty, companySelected.price_today, type).then((res) => {
+                            setFeedback(res);
+                            window.backend.fundTransaction(sessionStorage.getItem('uuid'), "Withdraw", totalOrderAmount).then((res) => {
+                                window.location.reload();
+                            })
+                        })
+
+                    } else if (type === "sell" && orderQuantity.stockQty <= userCompStockBalance.totalHolding) {
+                        window.backend.executeOrder(sessionStorage.getItem("uuid"), companySelected.symbol, orderQuantity.stockQty, companySelected.price_today, type).then((res) => {
+                            setFeedback(res);
+                            window.backend.fundTransaction(sessionStorage.getItem('uuid'), "Deposit", totalOrderAmount).then((res) => {
+                                window.location.reload();
+                            })
+
+                        })
+
+                    } else {
+                        setFeedback({ status: 1, message: "Not Enough Balance." });
+                    }
+                } else {
+                    setFeedback({ status: 1, message: "Order quantity should be more than 0." });
+                }
+            }
+
+            return (
+                <div className="container">
+                    <div className="searchSection">
+                        <nav>
+                            <input className="input is-rounded" type="text" onChange={(e) => searchCompanies(e.target.value)} placeholder="Search Company Name." />
+                        </nav>
+                        <div className="searchResults">
+                            <aside className="menu">
+                                <ul className="menu-list">
+                                    {searchResults}
+                                </ul>
+                            </aside>
+                        </div>
+                    </div>
+
+                    <div className="tradeInfoCard">
+                        <p className="is-size-5 mt-1">Ticker Symbol : {companySelected.symbol}</p>
+                        <p className="is-size-5">Company Name  : {companySelected.name}</p>
+                        <br />
+                        <p className="is-size-6">Current Price : ₹{companySelected.price_today}</p>
+                        <p className="is-size-6">Todays Change : {companySelected.change_percentage}%</p>
+                        <br />
+                        <p className="is-size-6">Your Total Holdings : {userCompStockBalance.totalHolding} qty</p>
+                        <p className="is-size-6">Total Holding Value : ₹{userCompStockBalance.totalHoldingValue ? (userCompStockBalance.totalHoldingValue).toFixed(2) : ""}</p>
+                        <p className="is-size-6">Total Funds Balance : ₹{Math.round(userFundBalance).toFixed(2)}</p>
+                        <br />
+                        <div className="tradeTab">
+                            <input
+                                className="input is-small"
+                                onChange={(e) => {
+                                    setOrderQuantity({
+                                        'totalAmount': Number(e.target.value * companySelected.price_today).toFixed(2),
+                                        'stockQty': Number(e.target.value)
+                                    })
+                                }}
+                                type="text"
+                                placeholder="Enter Quantity."
+                            />
+                            <button className="button is-success is-small" onClick={() => orderExecute('buy')}>BUY</button>
+                            <button className="button is-danger is-small" onClick={() => orderExecute('sell')}>SELL</button>
+                            <span className="is-small is-italic has-text-link-dark">total cost ₹{orderQuantity.totalAmount}</span>
+                        </div>
+                        <p className="is-italic m-2 has-text-danger">{feedback.status != 0 ? feedback.message : ''}</p>
+                    </div>
+                </div>
+            )
+        }
+
+        ReactDOM.render(
+            <React.StrictMode>
+                <TradePage />
+            </React.StrictMode>
+            , document.getElementById('TradePage'));
+    </script>
+
+</body>
+
+</html>

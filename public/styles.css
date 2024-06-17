@@ -52,7 +52,11 @@ display: flex;
     color: #439A97;
 
 }
-
+.log{
+    border: 0px transparent;
+    font-size: large;
+    font-weight: 600;
+}
 /* Home page */
 
 .marketSelectionTab{
@@ -173,4 +177,45 @@ margin-left: 10px;
 .stocksListSection{
     height: 410px;
     overflow: scroll;
+}
+
+/* predition model */
+
+/* styles.css */
+
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+}
+
+.container {
+    max-width: 600px;
+    margin: auto;
+}
+
+.title {
+    text-align: center;
+}
+
+.field {
+    margin-bottom: 20px;
+}
+
+.input {
+    width: 100%;
+}
+
+.button {
+    width: 100%;
+}
+
+.notification {
+    margin-top: 20px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+#plot {
+    margin-top: 20px;
 }

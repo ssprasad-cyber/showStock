@@ -7,6 +7,7 @@ function Navbar(props) {
       <nav>
         {props.page ? (
           <ul>
+            <img />
             <li
               className={props.page == 'Home' ? 'activeTab' : ''}
               onClick={() => {
@@ -44,13 +45,9 @@ function Navbar(props) {
           <ul></ul>
         )}
 
-        <img
-          src="./src/logo.png"
-          alt=""
-          onClick={() => {
+        <button class="log" onClick={() => {
             window.location.replace('./index.html');
-          }}
-        />
+          }}>Logout</button>
       </nav>
     </div>
   );
