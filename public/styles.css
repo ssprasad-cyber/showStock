@@ -2,11 +2,13 @@
 
 *{
     background-color: #fafafa;
+    margin: 0%;
 }
 
-#LoginPage, #SignUpPage, #HomePage, #TradePage, #PortfolioPage,#FundsPage{
+#LoginPage, #SignUpPage, #HomePage, #TradePage, #PortfolioPage,#FundsPage,#PredictPage{
 display: flex;
 }
+
 
 .formView{
     max-width: 500px;
@@ -218,4 +220,88 @@ body {
 
 #plot {
     margin-top: 20px;
+}
+
+/* Prediction model specific styles */
+
+
+
+
+
+.container {
+    text-align: center;
+    background: #fff;
+    padding: 20px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+}
+#predict_con{
+    margin: 10rem;
+}
+input {
+    padding: 10px;
+    margin-top: 20px;
+    width: 80%;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+button {
+    padding: 10px 20px;
+    margin-top: 20px;
+    background-color: #28a745;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #218838;
+}
+
+#result {
+    margin-top: 20px;
+}
+
+
+
+input[type="text"] {
+    width: 80%;
+    padding: 10px;
+    margin-bottom: 10px;
+}
+
+button {
+    padding: 10px 15px;
+    margin: 5px;
+    cursor: pointer;
+}
+
+#result {
+    margin-top: 20px;
+    text-align: left;
+}
+
+p {
+    font-size: 1.2em;
+}
+
+.bold {
+    font-weight: bold;
+}
+
+.profit {
+    color: green;
+    font-weight: bold;
+}
+
+.loss {
+    color: red;
+    font-weight: bold;
+}
+
+.hidden {
+    display: none;
 }

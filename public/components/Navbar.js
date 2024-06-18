@@ -5,9 +5,10 @@ function Navbar(props) {
   return (
     <div className="navbar">
       <nav>
+        <img src=".\src\logo1.png" alt="" className="Logo"/>
         {props.page ? (
           <ul>
-            <img />
+            
             <li
               className={props.page == 'Home' ? 'activeTab' : ''}
               onClick={() => {
@@ -15,6 +16,14 @@ function Navbar(props) {
               }}
             >
               Home
+            </li>
+            <li
+              className={props.page == 'Predict' ? 'activeTab' : ''}
+              onClick={() => {
+                routingFunction('predictor');
+              }}
+            >
+              Predict
             </li>
             <li
               className={props.page == 'Trade' ? 'activeTab' : ''}
