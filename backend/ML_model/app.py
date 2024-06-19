@@ -18,7 +18,7 @@ def get_start_date(symbol):
         # Ensure there's enough historical data for training
         if len(hist) == 0 or hist.index[0].year < (datetime.now().year - 10):
             # If less than 10 years of data available, use a fallback date
-            ten_years_ago = datetime.now() - timedelta(days=10 * 365)
+            ten_years_ago = datetime.now() - timedelta(days=9 * 365)
             return ten_years_ago.strftime('%Y-%m-%d')
         
         return hist.index[0].strftime('%Y-%m-%d')
