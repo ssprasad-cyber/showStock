@@ -4,9 +4,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- You can uncomment the Content-Security-Policy meta tag if needed -->
-    <!-- <meta http-equiv="Content-Security-Policy" content="default-src 'self' ; script-src 'self' ; style-src 'self' "> -->
-
     <!-- React and Babel scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/17.0.2/umd/react.production.min.js" crossorigin></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/17.0.2/umd/react-dom.production.min.js" crossorigin></script>
@@ -17,6 +14,33 @@
 
     <!-- Your custom CSS -->
     <link href="./styles.css" rel="stylesheet">
+
+    <style>
+        .circular-progress {
+            position: relative;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 7px solid #f3f3f3;
+            border-top: 10px solid #3498db;
+            animation: spin 2s linear infinite;
+            margin: auto;
+            display: inline-block; /* Ensure it's visible */
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        #predict_con {
+            text-align: center;
+        }
+    </style>
 
     <title>Predict</title>
 </head>
@@ -34,6 +58,7 @@
             const [companyIndex, setCompanyIndex] = useState([]); // Holds the entire company index
             const [searchResults, setSearchResults] = useState([]); // Holds search results
             const [symbol, setSymbol] = useState(""); // Holds the selected symbol
+            const [loading, setLoading] = useState(false); // Loading state for progress bar
 
             useEffect(() => {
                 // Fetch company index on component mount
@@ -42,13 +67,12 @@
 
             // Search companies based on user input
             function searchCompanies(searchString) {
-                const results = companyIndex.filter(item => 
-                    item.name.toLowerCase().includes(searchString.toLowerCase()) || 
+                const results = companyIndex.filter(item =>
+                    item.name.toLowerCase().includes(searchString.toLowerCase()) ||
                     item.symbol.toUpperCase().includes(searchString.toUpperCase())
                 );
                 setSearchResults(results);
             }
-
 
             // Select a company from search results
             function selectCompany(symbol) {
@@ -58,62 +82,65 @@
 
             // Predict stock price based on selected symbol
             function predictStockPrice() {
-    if (!symbol) {
-        alert('Please enter a stock symbol');
-        return;
-    }
-
-    fetch(`http://127.0.0.1:5000/predict_stock?symbol=${symbol}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                if (data.error === "Found array with 0 sample(s) (shape=(0, 1)) while a minimum of 1 is required by LinearRegression.") {
-                    alert('Please append .NS at the end of the symbol for NSE stocks.');
-                } else {
-                    document.getElementById('result').innerHTML = `<p>${data.error}</p>`;
+                if (!symbol) {
+                    alert('Please enter a stock symbol');
+                    return;
                 }
-            } else {
-                document.getElementById('result').innerHTML = `
-                    <p class="bold">Current Price: $${data['Current Price'].toFixed(2)}</p>
-                    <p class="bold">Predicted Price on ${data['Predicted Date']}: 
-                        <span class="${data['Predicted Value'] === 'profit' ? 'profit' : 'loss'}">
-                            $${data['Predicted Price'].toFixed(2)}
-                        </span>
-                    </p>
-                    <p class="bold">Prediction: 
-                        <span class="${data['Predicted Value'] === 'profit' ? 'profit' : 'loss'}">
-                            ${data['Predicted Value']}
-                        </span>
-                    </p>
-                    <p class="bold">Accuracy: ${data['Accuracy']}</p>
-                    <button onclick="tradeStock()">Trade</button>
-                `;
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-        });
-}
 
+                setLoading(true); // Show progress bar
 
+                fetch(`http://127.0.0.1:5000/predict_stock?symbol=${symbol}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        setLoading(false); // Hide progress bar
 
-                        // Clear results and reset selected symbol
-                        function clearResults() {
-                            setSymbol('');
-                            document.getElementById('result').innerHTML = '';
-                        }
-
-                        // Redirect to trade page with selected symbol
-                        function tradeStock() {
-                            if (!symbol) {
-                                alert('Please enter a stock symbol');
-                                return;
+                        if (data.error) {
+                            if (data.error === "Found array with 0 sample(s) (shape=(0, 1)) while a minimum of 1 is required by LinearRegression.") {
+                                alert('Please append .NS at the end of the symbol for NSE stocks.');
+                            } else {
+                                document.getElementById('result').innerHTML = `<p>${data.error}</p>`;
                             }
+                        } else {
+                            document.getElementById('result').innerHTML = `
+                                <p class="bold">Current Price: $${data['Current Price'].toFixed(2)}</p>
+                                <p class="bold">Predicted Price on ${data['Predicted Date']}: 
+                                    <span class="${data['Predicted Value'] === 'profit' ? 'profit' : 'loss'}">
+                                        $${data['Predicted Price'].toFixed(2)}
+                                    </span>
+                                </p>
+                                <p class="bold">Prediction: 
+                                    <span class="${data['Predicted Value'] === 'profit' ? 'profit' : 'loss'}">
+                                        ${data['Predicted Value']}
+                                    </span>
+                                </p>
+                                <p class="bold">Accuracy: ${data['Accuracy']}</p>
+                                <button onclick="tradeStock()">Trade</button>
+                            `;
+                        }
+                    })
+                    .catch(error => {
+                        setLoading(false); // Hide progress bar
+                        console.error('Error:', error);
+                    });
+            }
+
+            // Clear results and reset selected symbol
+            function clearResults() {
+                setSymbol('');
+                document.getElementById('result').innerHTML = '';
+            }
+
+            // Redirect to trade page with selected symbol
+            function tradeStock() {
+                if (!symbol) {
+                    alert('Please enter a stock symbol');
+                    return;
+                }
                 window.location.href = `/trade.html?symbol=${symbol}`;
             }
 
             return (
-                <div >
+                <div>
                     <div className="container" id='predict_con'>
                         <h1>Stock Price Predictor</h1>
                         <input
@@ -127,15 +154,21 @@
                             }}
                         />
                         <ul className="dropdown-content">
-                                {searchResults.map(item => (
-                                    <li key={item.cuid} className="dropdown-item" onClick={() => selectCompany(item.symbol)}>
-                                        {item.name} ({item.symbol})
-                                    </li>
-                                ))}
-                            </ul>
+                            {searchResults.map(item => (
+                                <li key={item.cuid} className="dropdown-item" onClick={() => selectCompany(item.symbol)}>
+                                    {item.name} ({item.symbol})
+                                </li>
+                            ))}
+                        </ul>
 
                         <button onClick={predictStockPrice}>Predict</button>
-                        <button onClick={clearResults}>Clear</button>
+                        <button onClick={clearResults}>Clear</button><br/>
+
+                        {/* Circular progress bar */}
+                        {loading && (
+                            <div className="circular-progress"></div>
+                        )}
+
                         <div id="result"></div>
                     </div>
                 </div>
